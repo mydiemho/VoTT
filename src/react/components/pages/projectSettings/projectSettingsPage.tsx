@@ -7,14 +7,14 @@ import IProjectActions, * as projectActions from "../../../../redux/actions/proj
 import { IApplicationState, IProject, IConnection } from "../../../../models/applicationState";
 import IConnectionActions, * as connectionActions from "../../../../redux/actions/connectionActions";
 
-interface IProjectSettingsPageProps extends RouteComponentProps, React.Props<ProjectSettingsPage> {
+export interface IProjectSettingsPageProps extends RouteComponentProps, React.Props<ProjectSettingsPage> {
     project: IProject;
     projectActions: IProjectActions;
     connectionActions: IConnectionActions;
     connections: IConnection[];
 }
 
-interface IProjectSettingsPageState {
+export interface IProjectSettingsPageState {
     project: IProject;
 }
 
@@ -67,21 +67,18 @@ export default class ProjectSettingsPage extends React.Component<IProjectSetting
         );
     }
 
-    private onFormSubmit = (form) => {
-        form.formData.tags = JSON.parse(form.formData.tags);
-        this.setState({
-            project: {
-                ...form.formData,
+    private onFormSubmit = async (formData) => {
+        if (formData.tags !== undefined) {
+            formData.tags = JSON.parse(formData.tags);
+        }
+        const projectToUpdate: IProject = {
+            ...formData,
                 sourceConnection: this.props.connections
-                    .find((connection) => connection.id === form.formData.sourceConnectionId),
+                    .find((connection) => connection.id === formData.sourceConnectionId),
                 targetConnection: this.props.connections
-                    .find((connection) => connection.id === form.formData.targetConnectionId),
-            },
-        }, () => {
-            this.props.projectActions.saveProject(this.state.project)
-                .then((project) => {
-                    this.props.history.push(`/projects/${project.id}/edit`);
-                });
-        });
+                    .find((connection) => connection.id === formData.targetConnectionId),
+        }
+        await this.props.projectActions.saveProject(projectToUpdate);
+        this.props.history.goBack();
     }
 }
