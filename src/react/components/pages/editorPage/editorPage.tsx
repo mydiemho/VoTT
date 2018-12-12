@@ -9,6 +9,7 @@ import HtmlFileReader from "../../../../common/htmlFileReader";
 import "./editorPage.scss";
 import AssetPreview from "./assetPreview";
 import EditorFooter from "./editorFooter";
+import EditorSideBar from "./editorSideBar";
 
 interface IEditorPageProps extends RouteComponentProps, React.Props<IEditorPageProps> {
     project: IProject;
@@ -35,6 +36,8 @@ function mapDispatchToProps(dispatch) {
 
 @connect(mapStateToProps, mapDispatchToProps)
 export default class EditorPage extends React.Component<IEditorPageProps, IEditorPageState> {
+    private loadingProjectAssets: boolean = false;
+
     constructor(props, context) {
         super(props, context);
 
@@ -75,27 +78,11 @@ export default class EditorPage extends React.Component<IEditorPageProps, IEdito
         return (
             <div className="editor-page">
                 <div className="editor-page-sidebar bg-lighter-1">
-                    <div className="asset-list">
-                        {
-                            assets.map((asset) =>
-                                <div className={selectedAsset && asset.id === selectedAsset.asset.id
-                                    ? "asset-item selected"
-                                    : "asset-item"}
-                                    onClick={() => this.selectAsset(asset)} key={asset.id}>
-                                    <div className="asset-item-image">
-                                        <AssetPreview asset={asset} />
-                                    </div>
-                                    <div className="asset-item-metadata">
-                                        <span className="asset-filename" title={asset.name}>{asset.name}</span>
-                                        {asset.size &&
-                                            <span className="float-right">
-                                                {asset.size.width} x {asset.size.height}
-                                            </span>
-                                        }
-                                    </div>
-                                </div>)
-                        }
-                    </div>
+                    <EditorSideBar
+                        assets={assets}
+                        selectedAsset={selectedAsset ? selectedAsset.asset : null}
+                        onAssetSelected={this.selectAsset}
+                    />
                 </div>
                 <div className="editor-page-content">
                     <div className="editor-page-content-header">
@@ -153,15 +140,19 @@ export default class EditorPage extends React.Component<IEditorPageProps, IEdito
 
         this.setState({
             selectedAsset: assetMetadata,
+            assets: _.values(this.props.project.assets),
         });
     }
 
     private async loadProjectAssets() {
-        if (this.state.assets.length > 0) {
+        if (this.loadingProjectAssets || this.state.assets.length > 0) {
             return;
         }
 
-        const assets = await this.props.projectActions.loadAssets(this.props.project);
+        this.loadingProjectAssets = true;
+
+        await this.props.projectActions.loadAssets(this.props.project);
+        const assets = _.values(this.props.project.assets);
 
         this.setState({
             assets,
@@ -169,6 +160,7 @@ export default class EditorPage extends React.Component<IEditorPageProps, IEdito
             if (assets.length > 0) {
                 await this.selectAsset(assets[0]);
             }
+            this.loadingProjectAssets = false;
         });
     }
 }

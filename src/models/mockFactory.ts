@@ -1,10 +1,10 @@
 import ProjectSettingsPage,
 { IProjectSettingsPageProps } from "../react/components/pages/projectSettings/projectSettingsPage";
+import IProjectActions, * as projectActions from "../redux/actions/projectActions";
 import { IProject, IConnection, IExportFormat,
     ITag, IAsset, IApplicationState, IAppSettings,
     IAssetMetadata, ISize } from "../models/applicationState";
 import { IProjectService } from "../services/projectService";
-import IProjectActions from "../redux/actions/projectActions";
 import IConnectionActions, { loadConnection, deleteConnection } from "../redux/actions/connectionActions";
 
 export class MockFactory {
@@ -144,7 +144,7 @@ export class MockFactory {
     public projectSettingsProps(projectId?: string): IProjectSettingsPageProps {
         return {
             project: null,
-            projectActions: this.projectActions(),
+            projectActions: (projectActions as any) as IProjectActions,
             connectionActions: this.connectionActions(),
             connections: this.connections(),
             history: this.history(),

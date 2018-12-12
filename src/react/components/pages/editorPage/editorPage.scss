@@ -7,7 +7,13 @@
     height: 100%;
 
     &-sidebar {
-        overflow-y: scroll;
+        width: 290px;
+        flex-basis: 290px;
+
+        &-nav {
+            width: 100%;
+            height: 100%;
+        }
     }
 
     &-content {
@@ -41,12 +47,6 @@
         }
     }
 
-    .asset-list {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-    }
-
     .asset-item:first-child {
         padding: 1em;
     }
@@ -65,6 +65,25 @@
             color: #fff;
             background-color: $lighter-4;
             font-weight: 600;
+        }
+
+        &.visited::after, &.tagged::after {
+            content: '';
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+        }
+
+        &.visited::after {
+            background-color: rgba(255,255,0,0.10);
+            border: 1px solid rgba(255,255,0,0.25);
+        }
+
+        &.tagged::after {
+            background-color: rgba(0,128,0, 0.10);
+            border: 1px solid rgba(0,128,0,0.25);
         }
 
         &-image {
