@@ -1,35 +1,30 @@
 import { IStorageProvider } from "./storageProvider";
 import { IAsset, AssetType } from "../../models/applicationState";
 import { AssetService } from "../../services/assetService";
+import * as Azure from "@azure/storage-blob"
+import { TokenCredential, AnonymousCredential, SharedKeyCredential, ContainerURL, StorageURL, ServiceURL } from "@azure/storage-blob";
 
 export interface IAzureCloudStorageOptions {
-    connectionString: string;
+    accountName: string;
     containerName: string;
     createContainer: boolean;
+    
+    token?: string;
+    connectionString?: string;
+    accountKey?: string;
 }
 
 export class AzureCloudStorageService implements IStorageProvider {
 
-    private static getHostName(connectionString: string): string {
-        const accountName = AzureCloudStorageService.getAccountName(connectionString);
-        return `https://${accountName}.blob.core.windows.net`;
-    }
-
-    private static getAccountName(connectionString: string): string {
-        const regex = /AccountName=([a-zA-Z0-9-]*)/g;
-        const match = regex.exec(connectionString);
-        return match[1];
-    }
-
     private static getFileName(path: string) {
         return path.substring(path.indexOf("/") + 1);
     }
-    constructor(private options?: IAzureCloudStorageOptions) {
-    }
+
+    constructor(private options?: IAzureCloudStorageOptions) {}
 
     public readText(path: string) {
         return new Promise<string>((resolve, reject) => {
-            this.getService().getBlobToText(
+            this.getServiceURL().getBlobToText(
                 this.options.containerName,
                 AzureCloudStorageService.getFileName(path),
                 (err, data) => {
@@ -53,7 +48,7 @@ export class AzureCloudStorageService implements IStorageProvider {
             await this.createContainer(this.options.containerName);
         }
         return new Promise<void>((resolve, reject) => {
-            this.getService().createBlockBlobFromText(
+            this.getServiceURL().createBlockBlobFromText(
                 this.options.containerName,
                 AzureCloudStorageService.getFileName(path),
                 contents,
@@ -74,7 +69,7 @@ export class AzureCloudStorageService implements IStorageProvider {
 
     public deleteFile(path: string) {
         return new Promise<void>((resolve, reject) => {
-            this.getService().deleteBlobIfExists(
+            this.getServiceURL().deleteBlobIfExists(
                 this.options.containerName,
                 AzureCloudStorageService.getFileName(path),
                 (err, data) => {
@@ -90,7 +85,7 @@ export class AzureCloudStorageService implements IStorageProvider {
 
     public listFiles(path: string) {
         return new Promise<string[]>((resolve, reject) => {
-            this.getService().listBlobsSegmented(
+            this.getServiceURL().listBlobsSegmented(
                 this.options.containerName,
                 null,
                 (err, results) => {
@@ -106,7 +101,7 @@ export class AzureCloudStorageService implements IStorageProvider {
 
     public listContainers(path: string) {
         return new Promise<string[]>((resolve, reject) => {
-            this.getService().listContainersSegmented(null, (err, results) => {
+            this.getServiceURL().listContainersSegmented(null, (err, results) => {
                 if (err) {
                     reject(err);
                 } else {
@@ -116,26 +111,18 @@ export class AzureCloudStorageService implements IStorageProvider {
         });
     }
 
-    public createContainer(path: string) {
+    public createContainer(containerName: string): Promise<void> {
         return new Promise<void>((resolve, reject) => {
-            const service = this.getService();
-            service.createContainerIfNotExists(
-                this.options.containerName,
-                { publicAccessLevel: "blob" },
-                (err) => {
-                    if (err) {
-                        reject(err);
-                    } else {
-                        resolve();
-                    }
-                },
-            );
+            ContainerURL.fromServiceURL(
+                null,
+                containerName
+            )
         });
     }
 
     public deleteContainer(path: string) {
         return new Promise<void>((resolve, reject) => {
-            this.getService().deleteContainer(
+            this.getServiceURL().deleteContainer(
                 this.options.containerName,
                 (err) => {
                     if (err) {
@@ -164,16 +151,63 @@ export class AzureCloudStorageService implements IStorageProvider {
         return result;
     }
 
-    private getService() {
-        return null;//AzureStorageBlob.createBlobService(this.options.connectionString);
+    private getAccountName(): string {
+        if (this.options.accountName) {
+            return this.options.accountName;
+        }
+        else{
+            const regex = /AccountName=([a-zA-Z0-9-]*)/g;
+            const match = regex.exec(this.options.connectionString);
+            return match[1];
+        }
+    }
+
+    private getAccountKey(): string {
+        if(this.options.accountKey){
+            return this.options.accountKey;
+        }
+        else{
+            const regex = /AccountKey=([a-zA-Z0-9-]*)/g;
+            const match = regex.exec(this.options.connectionString);
+            return match[1];
+        }        
+    }
+
+    private getHostName(): string {
+        return `https://${this.getAccountName()}.blob.core.windows.net`;
+    }
+
+    private getCredential() {
+        if (this.options.token) {
+            return new TokenCredential(this.options.token);
+        }
+        else if (this.options.connectionString) {
+            return new SharedKeyCredential(
+                this.getAccountName(),
+                this.getAccountKey()
+            );
+        }
+        else {
+            return new AnonymousCredential();
+        }
+    }
+
+    private getServiceURL() {
+        const credential = this.getCredential();
+        const pipeline = StorageURL.newPipeline(credential);
+        const serviceUrl = new ServiceURL(
+            this.getHostName(),
+            pipeline
+        )
+        return serviceUrl;
     }
 
     private getUrl(blobName: string) {
-        return this.getService().getUrl(
-            this.options.containerName,
-            blobName,
-            null,
-            AzureCloudStorageService.getHostName(this.options.connectionString),
-        );
+        // return this.getServiceURL().getUrl(
+        //     this.options.containerName,
+        //     blobName,
+        //     null,
+        //     AzureCloudStorageService.getHostName(this.options.connectionString),
+        // );
     }
 }
