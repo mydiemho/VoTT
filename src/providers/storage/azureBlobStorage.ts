@@ -1,5 +1,4 @@
 import { IStorageProvider } from "./storageProvider";
-import AzureStorageBlob from "../../vendor/azurestoragejs/azure-storage.blob.js";
 import { IAsset, AssetType } from "../../models/applicationState";
 import { AssetService } from "../../services/assetService";
 
@@ -166,7 +165,7 @@ export class AzureCloudStorageService implements IStorageProvider {
     }
 
     private getService() {
-        return AzureStorageBlob.createBlobService(this.options.connectionString);
+        return null;//AzureStorageBlob.createBlobService(this.options.connectionString);
     }
 
     private getUrl(blobName: string) {
