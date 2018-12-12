@@ -1,5 +1,7 @@
 import _ from "lodash";
 import { AssetState, IAsset, AssetType, IProject } from "../models/applicationState";
+import { IAzureCloudStorageOptions } from "../providers/storage/azureBlobStorage";
+import { StorageURL, ContainerURL, BlockBlobURL } from "@azure/storage-blob";
 
 export default class MockFactory {
     public static createTestAsset(name: string, assetState: AssetState = AssetState.NotVisited): IAsset {
@@ -47,5 +49,41 @@ export default class MockFactory {
             tags: [],
             autoSave: true,
         };
+    }
+
+    public static azureOptions(): IAzureCloudStorageOptions {
+        return {
+            accountName: "myaccount",
+            containerName: "container",
+            createContainer: false,
+        }
+    }
+
+    public static listContainersResponse() {
+        return {
+            containerItems: MockFactory.azureContainers(),
+            nextMarker: null
+        }
+    }
+
+    public static azureContainers(count: number=3) {
+        let result = []
+        for(let i = 0; i < count; i++){
+            result.push({
+                name: `container${count}`,
+                blobs: MockFactory.azureBlobs(i)
+            })
+        }
+        return result;
+    }
+
+    public static azureBlobs(id: number, count:number=10) {
+        let result = []
+        for(let i = 0; i < count; i++){
+            result.push({
+                name: `blob-${id}-${i}.jpg`
+            })
+        }
+        return result;
     }
 }
