@@ -20,9 +20,7 @@ export class AzureCloudStorageService implements IStorageProvider {
 
     constructor(private options?: IAzureCloudStorageOptions) {}
 
-    
-
-    public readText(blobName: string) : Promise<string> {
+    public readText(blobName: string): Promise<string> {
         return new Promise<string>(async (resolve, reject) => {
             try {
                 const blockBlobURL = this.getBlockBlobURL(blobName);
@@ -156,28 +154,8 @@ export class AzureCloudStorageService implements IStorageProvider {
         return result;
     }
 
-    private getAccountName(): string {
-        if (this.options.accountName) {
-            return this.options.accountName;
-        } else {
-            const regex = /AccountName=([a-zA-Z0-9-]*)/g;
-            const match = regex.exec(this.options.connectionString);
-            return match[1];
-        }
-    }
-
-    private getAccountKey(): string {
-        if (this.options.accountKey) {
-            return this.options.accountKey;
-        } else {
-            const regex = /AccountKey=([a-zA-Z0-9-]*)/g;
-            const match = regex.exec(this.options.connectionString);
-            return match[1];
-        }
-    }
-
     private getHostName(): string {
-        return `https://${this.getAccountName()}.blob.core.windows.net`;
+        return `https://${this.options.accountName}.blob.core.windows.net`;
     }
 
     private getCredential(): Credential {
@@ -198,20 +176,19 @@ export class AzureCloudStorageService implements IStorageProvider {
         return serviceUrl;
     }
 
-    private getContainerURL(serviceURL?: ServiceURL): ContainerURL {
+    private getContainerURL(serviceURL?: ServiceURL, containerName?: string): ContainerURL {
         return ContainerURL.fromServiceURL(
             (serviceURL) ? serviceURL : this.getServiceURL(),
-            this.options.containerName,
+            (containerName) ? containerName : this.options.containerName,
         );
     }
 
     private getBlockBlobURL(blobName: string): BlockBlobURL {
         const containerURL = this.getContainerURL();
-        const blobURL = BlobURL.fromContainerURL(
+        return BlockBlobURL.fromContainerURL(
             containerURL,
             blobName,
         );
-        return BlockBlobURL.fromBlobURL(blobURL);
     }
 
     private getUrl(blobName: string): string {
@@ -224,7 +201,7 @@ export class AzureCloudStorageService implements IStorageProvider {
           blobBody?: Promise<Blob>;
         },
         // tslint:disable-next-line:variable-name
-        _length?: number
+        _length?: number,
       ): Promise<string> {
         const blob = await response.blobBody!;
         return this.blobToString(blob);
